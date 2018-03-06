@@ -14,7 +14,7 @@ from torch.autograd import Variable
 
 import torchvision as tv
 import numpy as np
-from models import CNN, gsCNN
+from models import CNN, gsCNN, gCNN, sCNN#, gmsCNN
 import os
 import math
 
@@ -130,16 +130,16 @@ def val_loss(test_loader, model, L):
     return np.mean(tloss)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Train OVR-Net")
-    parser.add_argument('-d', '--data', default="MNIST",
+    parser = argparse.ArgumentParser(description="Train Grow/Shrink-Nets")
+    parser.add_argument('-d', '--data', default="vMNIST",
                         help="Specify which dataset to use")
     parser.add_argument('-c', '--checkpoint', default="",
                         help="Load model from checkpoint")
-    parser.add_argument('-v', '--validate', action="store_true", default=False,
+    parser.add_argument('-v', '--validate', default=False,
                         help="Skips training and evaluates on test set only")
-    #parser.add_argument('-n', '--num_layers', default=4,
-    #                    help="Number of convolutional layers")
-    parser.add_argument('-g', '--gpu', action="store_true", default=False,
+    parser.add_argument('-m', '--model', default="CNN", 
+                        help="Model to be used. Either CNN, gCNN, sCNN, gsCNN")
+    parser.add_argument('-g', '--gpu', default=False, type=bool,
                         help="Enable GPU support")
     parser.add_argument('-k', '--kernel', default=3, type=int,
                         help="Convolution kernel size for shrink layer")
@@ -155,7 +155,7 @@ if __name__ == "__main__":
                         help="Learning rate")
     parser.add_argument('-b', '--batch_size', default=128, type=int,
                         help="Batch size")
-    parser.add_argument('-e', '--epochs', default=25, type=int,
+    parser.add_argument('-e', '--epochs', default=20, type=int,
                         help="Number of epochs to train")
     parser.add_argument('-s', '--seed', default=1234, type=int,
                         help="Numpy random seed")
@@ -167,8 +167,21 @@ if __name__ == "__main__":
         t.cuda.manual_seed(args.seed)
 
     # DEFINE MODEL HERE
-#    model = gsCNN(kernelg=args.kernelg, kernels=args.kernels, num_filters=args.num_filters, rate=args.rate)
-    model = CNN(kernel=args.kernel, num_filters=args.num_filters)
+    if args.model == "CNN":
+        model = CNN(kernel=args.kernel, num_filters=args.num_filters)
+        fname = "models/CNN_"+str(args.kernel)+"_"+str(args.num_filters)+"_"+str(args.batch_size)+".model"
+    elif args.model == "gCNN":
+        model = gCNN(kernel=args.kernelg, num_filters=args.num_filters, rate= args.rate)
+        fname = "models/gCNN_"+str(args.kernelg)+"_"+str(args.num_filters)+"_"+str(args.batch_size)+"_"+str(args.rate)+".model"
+    elif args.model == "sCNN":
+        model = sCNN(kernel=args.kernels, num_filters=args.num_filters, rate=args.rate)
+        fname = "models/sCNN_"+str(args.kernels)+"_"+str(args.num_filters)+"_"+str(args.batch_size)+"_"+str(args.rate)+".model"
+    elif args.model == "gsCNN":
+        model = gsCNN(kernelg=args.kernelg, kernels=args.kernels, num_filters=args.num_filters, rate=args.rate)
+        fname = "models/gsCNN_"+str(args.kernelg)+"_"+str(args.kernels)+"_"+str(args.num_filters)+"_"+str(args.batch_size)+"_"+str(args.rate)+".model"
+        # not yet implemented
+        
+        
     if args.gpu:
         model.cuda()
     
@@ -178,7 +191,7 @@ if __name__ == "__main__":
     
     if not os.path.exists("models"):
         os.makedirs("models")
-    fname = "models/CNN.model"
+
     
     # load to continue with pre-existing model
     if os.path.exists(fname):
@@ -197,7 +210,7 @@ if __name__ == "__main__":
 #                                           shuffle=True)
 #    test_loader = test
     
-    train_data, test_data = dataFetch(dset="vMNIST")
+    train_data, test_data = dataFetch(dset=args.data)
     
     train_loader = t.utils.data.DataLoader(dataset=train_data,
                                            batch_size=args.batch_size, 
@@ -207,49 +220,48 @@ if __name__ == "__main__":
                                           shuffle=False)
 
     print("Starting with training process...")
-    for epoch in range(args.epochs):
-        model.train()
-        start = time.time()
-        tloss = []
-        best = 1000
-        for i, (img, lbl) in enumerate(train_loader):
-            if args.gpu:
-                images = Variable(img).cuda()
-                labels = Variable(lbl).cuda()
-            else:
-                images = Variable(img)
-                labels = Variable(lbl)
-
-            
-            # Pass and Backpropagate
-            
-            #clear gradient
-            optimizer.zero_grad() # Clear stored gradients
-            outputs = model(images) # CNN forward pass
-            loss = L(outputs, labels) # Calculate error
-            loss.backward() # Compute gradients
-            tloss.append(loss.data[0])
-            optimizer.step() # Update weights
+    if not args.validate:
+        for epoch in range(args.epochs):
+            model.train()
+            start = time.time()
+            tloss = []
+            best = 1000
+            for i, (img, lbl) in enumerate(train_loader):
+                if args.gpu:
+                    images = Variable(img).cuda()
+                    labels = Variable(lbl).cuda()
+                else:
+                    images = Variable(img)
+                    labels = Variable(lbl)
     
-        # output training loss
-        print ("Epoch [{}/{}], Training Loss: {}"
-               .format(epoch+1, args.epochs, np.mean(tloss)))
+                
+                # Pass and Backpropagate
+                
+                #clear gradient
+                optimizer.zero_grad() # Clear stored gradients
+                outputs = model(images) # CNN forward pass
+                loss = L(outputs, labels) # Calculate error
+                loss.backward() # Compute gradients
+                tloss.append(loss.data[0])
+                optimizer.step() # Update weights
         
-        # compute validation loss
-
-        val_accuracy(test_loader, model)
-        vl = val_loss(test_loader, model, L)
-        
-        # elapsed time
-        time_elapsed = time.time() - start
-        print("Time for this epoch: {0:.2f} seconds".format(time_elapsed))
-        
-        # save the model if it has a better loss on the validation set
-        if (vl<best):
-            t.save(model.state_dict(),fname)
-        
-        
-               
+            # output training loss
+            print ("Epoch [{}/{}], Training Loss: {}"
+                   .format(epoch+1, args.epochs, np.mean(tloss)))
+            
+            # compute validation loss
+    
+            val_accuracy(test_loader, model)
+            vl = val_loss(test_loader, model, L)
+            
+            # elapsed time
+            time_elapsed = time.time() - start
+            print("Time for this epoch: {0:.2f} seconds".format(time_elapsed))
+            
+            # save the model if it has a better loss on the validation set
+            if (vl<best):
+                t.save(model.state_dict(),fname)
+            
     print("Finished training.")
     # Change to evaluation
     model.eval()  
