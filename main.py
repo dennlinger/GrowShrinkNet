@@ -95,25 +95,30 @@ class customDataset(t.utils.data.TensorDataset):
         pass
         
         
-def val_accuracy(test_loader, model):
+def val_accuracy(test_loader, model, gpu):
     model.eval()
     correct = 0
     total = 0
     for images, labels in test_loader:
-        images = Variable(images)
+        if gpu:
+			images = Variable(images).cuda()
+			labels = Variable(labels).cuda()
+        else:
+			images = Variable(images)
+			labels = Variable(labels)
         outputs = model(images)
         _, predicted = t.max(outputs.data, 1)
         total += labels.size(0)
-        correct += (predicted == labels).sum()
-    print('Test Accuracy (10000 test images): {0:.2f}'.format(100 * correct / total))
+        correct += (predicted == labels.data).cpu().sum()
+    print('Test Accuracy (10000 test images): {0:.2f}'.format(100 * float(correct) / float(total)))
 
 
 
-def val_loss(test_loader, model, L):
+def val_loss(test_loader, model, L, gpu):
     model.train()
     tloss = []
     for i, (img, lbl) in enumerate(test_loader):
-        if args.gpu:
+        if gpu:
             images = Variable(img).cuda()
             labels = Variable(lbl).cuda()
         else:
@@ -135,7 +140,7 @@ if __name__ == "__main__":
                         help="Specify which dataset to use")
     parser.add_argument('-c', '--checkpoint', default="",
                         help="Load model from checkpoint")
-    parser.add_argument('-v', '--validate', default=False,
+    parser.add_argument('-v', '--validate', default=False, type=bool,
                         help="Skips training and evaluates on test set only")
     parser.add_argument('-m', '--model', default="CNN", 
                         help="Model to be used. Either CNN, gCNN, sCNN, gsCNN")
@@ -183,7 +188,7 @@ if __name__ == "__main__":
         
         
     if args.gpu:
-        model.cuda()
+        model =model.cuda()
     
     # Training setup
     L = t.nn.CrossEntropyLoss()
@@ -249,10 +254,10 @@ if __name__ == "__main__":
             print ("Epoch [{}/{}], Training Loss: {}"
                    .format(epoch+1, args.epochs, np.mean(tloss)))
             
-            # compute validation loss
-    
-            val_accuracy(test_loader, model)
-            vl = val_loss(test_loader, model, L)
+        	# compute validation loss
+            if (epoch%3==0):
+	            val_accuracy(test_loader, model, args.gpu)
+            vl = val_loss(test_loader, model, L, args.gpu)
             
             # elapsed time
             time_elapsed = time.time() - start
@@ -261,14 +266,15 @@ if __name__ == "__main__":
             # save the model if it has a better loss on the validation set
             if (vl<best):
                 t.save(model.state_dict(),fname)
+                best = vl
             
     print("Finished training.")
     # Change to evaluation
     model.eval()  
     # Compute accuracy
     print("Final accuracy:")
-    val_accuracy(test_loader)
-    val_loss(test_loader, model, L)
+    val_accuracy(test_loader, model, args.gpu)
+    val_loss(test_loader, model, L, args.gpu)
     
     
     
