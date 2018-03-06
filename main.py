@@ -114,8 +114,8 @@ def val_loss(test_loader, model, L):
     tloss = []
     for i, (img, lbl) in enumerate(test_loader):
         if args.gpu:
-            images = Variable(img.cuda())
-            labels = Variable(lbl.cuda())
+            images = Variable(img).cuda()
+            labels = Variable(lbl).cuda()
         else:
             images = Variable(img)
             labels = Variable(lbl)
@@ -214,8 +214,8 @@ if __name__ == "__main__":
         best = 1000
         for i, (img, lbl) in enumerate(train_loader):
             if args.gpu:
-                images = Variable(img.cuda())
-                labels = Variable(lbl.cuda())
+                images = Variable(img).cuda()
+                labels = Variable(lbl).cuda()
             else:
                 images = Variable(img)
                 labels = Variable(lbl)

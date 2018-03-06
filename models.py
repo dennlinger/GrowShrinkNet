@@ -64,28 +64,131 @@ class gsCNN(t.nn.Module):
         
         return self.final
         
-class CNN(t.nn.Module):
-    def __init__(self, kernel=3, num_filters = 8):
-        super(CNN, self).__init__()
-        padding = kernel//2
+class gCNN(t.nn.Module):
+    # increases kernel size for each convolutional layer
+    def __init__(self, kernel=3, num_filters = 8, rate = 2):
+        super(gCNN, self).__init__()
+        self.padding = kernel//2
+        self.pad_rate = rate//2
         
         self.conv1 = t.nn.Sequential(
                 t.nn.Conv2d(in_channels=1, out_channels=num_filters,
-                            kernel_size=kernel, padding=padding),
+                            kernel_size=kernel, padding=self.padding),
                 t.nn.MaxPool2d(2),
                 t.nn.BatchNorm2d(num_filters),
                 t.nn.ReLU())
         
         self.conv2 = t.nn.Sequential(
                 t.nn.Conv2d(in_channels=num_filters, out_channels=num_filters*2,
-                            kernel_size=kernel, padding=padding),
+                            kernel_size=kernel+self.rate, padding=self.padding+ self.pad_rate),
                 t.nn.MaxPool2d(2),
                 t.nn.BatchNorm2d(num_filters*2),
                 t.nn.ReLU())
         
         self.conv3 = t.nn.Sequential(
                 t.nn.Conv2d(in_channels=num_filters*2, out_channels=num_filters*4,
-                            kernel_size=kernel, padding=padding),
+                            kernel_size=kernel+2*self.rate, padding=self.padding+2*self.pad_rate),
+                t.nn.MaxPool2d(2, padding=1),
+                t.nn.BatchNorm2d(num_filters*4),
+                t.nn.ReLU())
+                
+        self.fc1 = t.nn.Sequential(
+                t.nn.Linear(num_filters*4*(4*4),128),
+                t.nn.ReLU())
+        
+        self.fc2 = t.nn.Sequential(
+                t.nn.Linear(128,128),
+                t.nn.ReLU())
+        
+        self.soft = t.nn.Linear(128,10)
+                # don't need softmax since it's included in loss
+#                t.nn.Softmax())
+        
+    def forward(self, x):
+        self.convout1 = self.conv1(x)
+        self.convout2 = self.conv2(self.convout1)
+        self.convout3 = self.conv3(self.convout2)
+        self.flatview = self.convout3.view(self.convout3.size(0),-1)
+        self.fcout1 = self.fc1(self.flatview)
+        self.fcout2 = self.fc2(self.fcout1)
+        self.final = self.soft(self.fcout2)
+        
+        return self.final 
+        
+class sCNN(t.nn.Module):
+    # decreases kernel size for each convolutional layer
+    def __init__(self, kernel=7, num_filters = 8, rate = 2):
+        super(gCNN, self).__init__()
+        self.padding = kernel//2
+        self.pad_rate = rate//2
+        
+        self.conv1 = t.nn.Sequential(
+                t.nn.Conv2d(in_channels=1, out_channels=num_filters,
+                            kernel_size=kernel, padding=self.padding),
+                t.nn.MaxPool2d(2),
+                t.nn.BatchNorm2d(num_filters),
+                t.nn.ReLU())
+        
+        self.conv2 = t.nn.Sequential(
+                t.nn.Conv2d(in_channels=num_filters, out_channels=num_filters*2,
+                            kernel_size=kernel-self.rate, padding=self.padding-self.pad_rate),
+                t.nn.MaxPool2d(2),
+                t.nn.BatchNorm2d(num_filters*2),
+                t.nn.ReLU())
+        
+        self.conv3 = t.nn.Sequential(
+                t.nn.Conv2d(in_channels=num_filters*2, out_channels=num_filters*4,
+                            kernel_size=kernel-2*self.rate, padding=self.padding-2*self.pad_rate),
+                t.nn.MaxPool2d(2, padding=1),
+                t.nn.BatchNorm2d(num_filters*4),
+                t.nn.ReLU())
+                
+        self.fc1 = t.nn.Sequential(
+                t.nn.Linear(num_filters*4*(4*4),128),
+                t.nn.ReLU())
+        
+        self.fc2 = t.nn.Sequential(
+                t.nn.Linear(128,128),
+                t.nn.ReLU())
+        
+        self.soft = t.nn.Linear(128,10)
+                # don't need softmax since it's included in loss
+#                t.nn.Softmax())
+        
+    def forward(self, x):
+        self.convout1 = self.conv1(x)
+        self.convout2 = self.conv2(self.convout1)
+        self.convout3 = self.conv3(self.convout2)
+        self.flatview = self.convout3.view(self.convout3.size(0),-1)
+        self.fcout1 = self.fc1(self.flatview)
+        self.fcout2 = self.fc2(self.fcout1)
+        self.final = self.soft(self.fcout2)
+        
+        return self.final       
+        
+    
+class CNN(t.nn.Module):
+    def __init__(self, kernel=3, num_filters = 8):
+        super(CNN, self).__init__()
+        self.padding = kernel//2
+        
+        self.conv1 = t.nn.Sequential(
+                t.nn.Conv2d(in_channels=1, out_channels=num_filters,
+                            kernel_size=kernel, padding=self.padding),
+                t.nn.MaxPool2d(2),
+                t.nn.BatchNorm2d(num_filters),
+                t.nn.ReLU())
+        
+        self.conv2 = t.nn.Sequential(
+                t.nn.Conv2d(in_channels=num_filters, out_channels=num_filters*2,
+                            kernel_size=kernel, padding=self.padding),
+                t.nn.MaxPool2d(2),
+                t.nn.BatchNorm2d(num_filters*2),
+                t.nn.ReLU())
+        
+        self.conv3 = t.nn.Sequential(
+                t.nn.Conv2d(in_channels=num_filters*2, out_channels=num_filters*4,
+                            kernel_size=kernel, padding=self.padding),
                 t.nn.MaxPool2d(2, padding=1),
                 t.nn.BatchNorm2d(num_filters*4),
                 t.nn.ReLU())
