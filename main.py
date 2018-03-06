@@ -95,7 +95,7 @@ class customDataset(t.utils.data.TensorDataset):
         pass
         
         
-def val_accuracy(test_loader):
+def val_accuracy(test_loader, model):
     model.eval()
     correct = 0
     total = 0
@@ -237,7 +237,7 @@ if __name__ == "__main__":
         
         # compute validation loss
 
-        val_accuracy(test_loader)
+        val_accuracy(test_loader, model)
         vl = val_loss(test_loader, model, L)
         
         # elapsed time
@@ -250,8 +250,7 @@ if __name__ == "__main__":
         
         
                
-    print("Finished training, saving model...")
-    t.save(model.state_dict(), fname)
+    print("Finished training.")
     # Change to evaluation
     model.eval()  
     # Compute accuracy
