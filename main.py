@@ -14,7 +14,7 @@ from torch.autograd import Variable
 
 import torchvision as tv
 import numpy as np
-from models import CNN, gsCNN, gCNN, sCNN#, gmsCNN
+from models import CNN, gsCNN, gCNN, sCNN, gmsCNN
 import os
 import math
 
@@ -184,11 +184,14 @@ if __name__ == "__main__":
     elif args.model == "gsCNN":
         model = gsCNN(kernelg=args.kernelg, kernels=args.kernels, num_filters=args.num_filters, rate=args.rate)
         fname = "models/gsCNN_"+args.data+str(args.kernelg)+"_"+str(args.kernels)+"_"+str(args.num_filters)+"_"+str(args.batch_size)+"_"+str(args.rate)+".model"
-        # not yet implemented
+    elif args.model == "gmsCNN":
+        model = gmsCNN(kernelg=args.kernelg, kernels=args.kernels, kernel=args.kernel, num_filters=args.num_filters, rate=args.rate)
+        fname = "models/gmsCNN_"+args.data+str(args.kernel)+"_"+str(args.kernelg)+"_"+str(args.kernels)+"_"+str(args.num_filters)+"_"+str(args.batch_size)+"_"+str(args.rate)+".model"
+
         
         
     if args.gpu:
-        model =model.cuda()
+        model = model.cuda()
     
     # Training setup
     L = t.nn.CrossEntropyLoss()
@@ -201,7 +204,7 @@ if __name__ == "__main__":
     # load to continue with pre-existing model
     if os.path.exists(fname):
         model.load_state_dict(t.load(fname))
-        print("Successfully loaded previous model")
+        print("Successfully loaded previous model " + str(fname))
     
     
     # start with a model defined on 0
