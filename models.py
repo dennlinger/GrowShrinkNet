@@ -70,6 +70,7 @@ class gCNN(t.nn.Module):
         super(gCNN, self).__init__()
         self.padding = kernel//2
         self.pad_rate = rate//2
+        self.rate = rate
         
         self.conv1 = t.nn.Sequential(
                 t.nn.Conv2d(in_channels=1, out_channels=num_filters,

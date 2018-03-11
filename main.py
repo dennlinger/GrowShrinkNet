@@ -42,10 +42,10 @@ def dataFetch(dset="MNIST"):
         print("Loaded MNIST dataset successfully...")
         return train_data, test_data
     elif (dset=="vFashion"):
-        print("Starting to load MNIST dataset...")
-        train_data = tv.datasets.MNIST("./data/",train=True, transform=tv.transforms.ToTensor(), download=True)
-        test_data = tv.datasets.MNIST("./data/", train=False, transform=tv.transforms.ToTensor())
-        print("Loaded MNIST dataset successfully...")
+        print("Starting to load MNIST Fashion dataset...")
+        train_data = tv.datasets.FashionMNIST("./data/fashion",train=True, transform=tv.transforms.ToTensor(), download=True)
+        test_data = tv.datasets.FashionMNIST("./data/fashion", train=False, transform=tv.transforms.ToTensor())
+        print("Loaded MNIST Fashion dataset successfully...")
         return train_data, test_data
         
         
@@ -174,16 +174,16 @@ if __name__ == "__main__":
     # DEFINE MODEL HERE
     if args.model == "CNN":
         model = CNN(kernel=args.kernel, num_filters=args.num_filters)
-        fname = "models/CNN_"+str(args.kernel)+"_"+str(args.num_filters)+"_"+str(args.batch_size)+".model"
+        fname = "models/CNN_"+args.data+str(args.kernel)+"_"+str(args.num_filters)+"_"+str(args.batch_size)+".model"
     elif args.model == "gCNN":
         model = gCNN(kernel=args.kernelg, num_filters=args.num_filters, rate= args.rate)
-        fname = "models/gCNN_"+str(args.kernelg)+"_"+str(args.num_filters)+"_"+str(args.batch_size)+"_"+str(args.rate)+".model"
+        fname = "models/gCNN_"+args.data+str(args.kernelg)+"_"+str(args.num_filters)+"_"+str(args.batch_size)+"_"+str(args.rate)+".model"
     elif args.model == "sCNN":
         model = sCNN(kernel=args.kernels, num_filters=args.num_filters, rate=args.rate)
-        fname = "models/sCNN_"+str(args.kernels)+"_"+str(args.num_filters)+"_"+str(args.batch_size)+"_"+str(args.rate)+".model"
+        fname = "models/sCNN_"+args.data+str(args.kernels)+"_"+str(args.num_filters)+"_"+str(args.batch_size)+"_"+str(args.rate)+".model"
     elif args.model == "gsCNN":
         model = gsCNN(kernelg=args.kernelg, kernels=args.kernels, num_filters=args.num_filters, rate=args.rate)
-        fname = "models/gsCNN_"+str(args.kernelg)+"_"+str(args.kernels)+"_"+str(args.num_filters)+"_"+str(args.batch_size)+"_"+str(args.rate)+".model"
+        fname = "models/gsCNN_"+args.data+str(args.kernelg)+"_"+str(args.kernels)+"_"+str(args.num_filters)+"_"+str(args.batch_size)+"_"+str(args.rate)+".model"
         # not yet implemented
         
         
